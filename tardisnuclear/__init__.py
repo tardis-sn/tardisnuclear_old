@@ -10,4 +10,4 @@ This is an Astropy affiliated package.
 from ._astropy_init import *
 # ----------------------------------------------------------------------------
 
-from tardisnuclear.base import Ejecta
+from tardisnuclear.ejecta import Ejecta
