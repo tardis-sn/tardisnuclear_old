@@ -1,18 +1,19 @@
 import urllib2
 import os
+import logging
 
-import pandas as pd
+logger = logging.getLogger(__name__)
+
 import bs4
-
+import pandas as pd
+import numpy as np
 from astropy import units as u
 
-import pandas as pd
-
+#getting the data_path
 import tardisnuclear
-
 data_path = os.path.join(tardisnuclear.__path__[0], 'data')
 
-
+from abc import ABCMeta
 
 
 
@@ -24,8 +25,6 @@ def download_decay_radiation(nuclear_string):
     nuclear_bs = bs4.BeautifulSoup(urllib2.urlopen(
         base_url.format(nucname=nuclear_string.upper())))
 
-    results = {}
-
     data_list = nuclear_bs.find_all('u')
     if data_list == []:
         raise ValueError('{0} is stable and does not have decay '
@@ -34,16 +33,25 @@ def download_decay_radiation(nuclear_string):
     data_sets = []
     current_data_set = {}
     for item in data_list:
-        if item.get_text().startswith('Dataset'):
+        data_name = item.get_text()
+        if data_name.startswith('Dataset'):
             if current_data_set != {}:
                 data_sets.append(current_data_set)
             current_data_set = {}
 
-        if item.get_text() in decay_radiation_parsers:
+
+        if data_name in decay_radiation_parsers:
             next_table = item.find_next('table')
-            name, data = decay_radiation_parsers[item.get_text()](
-                next_table)
-            current_data_set[name] = data
+            data_result = decay_radiation_parsers[data_name].parse(next_table)
+            current_data_set.update(data_result)
+
+        elif data_name.startswith('Author'):
+            pass
+        elif data_name.startswith('Citation'):
+            pass
+        else:
+            print "Data \"{0}\" is not recognized".format(item.get_text())
+
     if current_data_set != {}:
             data_sets.append(current_data_set)
     return data_sets
@@ -58,7 +66,8 @@ def store_decay_radiation_from_ejecta(ejecta, force_update=False):
     :return:
     """
 
-    for isotope in ejecta.isotopes:
+    for isotope in ejecta.get_all_children_nuc_name():
+        print "Working on isotope", isotope
         try:
             store_decay_radiation(isotope, force_update=force_update)
         except IOError as e:
@@ -75,15 +84,20 @@ def store_decay_radiation(nuclear_string, force_update=False):
             raise IOError('{0} is already in the database '
                           '(force_update to overwrite)'.format(nuclear_string))
         try:
-            data_set = download_decay_radiation(nuclear_string)
+            data_set_list = download_decay_radiation(nuclear_string)
         except ValueError:
             print "{0} is stable - making empty dataset".format(nuclear_string)
             ds['{0}'.format(nuclear_string)] = pd.DataFrame()
         else:
-            for i, data_set in enumerate(data_set):
+            for i, data_set in enumerate(data_set_list):
                 for key, value in data_set.items():
-                    ds['{0}/data_set{1}/{2}'.format(
-                        nuclear_string, i, key)] = value
+                    group_str = '{0}/data_set{1}/{2}'.format(nuclear_string, i,
+                                                             key)
+                    print "Writing group", group_str
+                    ds[group_str] = value
+        ds.flush()
+        ds.close()
+
 
 
 def get_decay_radiation(nuclear_string, data_set_idx=0):
@@ -94,10 +108,9 @@ def get_decay_radiation(nuclear_string, data_set_idx=0):
                             if key.startswith('/{0}/data_set{1:d}'.format(
                 nuclear_string, data_set_idx))]
         if len(current_keys) == 0:
-
             if '/{0}'.format(nuclear_string) in ds.keys():
-                print '{0} is stable - no decay radiation available'.format(
-                    nuclear_string)
+                logger.debug('{0} is stable - no decay radiation available'.format(
+                    nuclear_string))
                 return {}
             else:
                 raise ValueError('{0} not in database'.format(nuclear_string))
@@ -108,48 +121,79 @@ def get_decay_radiation(nuclear_string, data_set_idx=0):
 
 
 
+class BaseParser():
+    __metaclass__ = ABCMeta
 
-def parse_electrons_table(electrons_table):
+    @staticmethod
+    def _convert_html_to_df(html_table, column_names):
+        df = pd.read_html(unicode(html_table))[0].iloc[1:]
+        df.columns = column_names
+        if 'type' in column_names:
+            df.type[df.type.isnull()] = ''
+        return df
+    @staticmethod
+    def _sanititze_table(df):
+        if 'energy' in df.columns:
+            df.energy = df.energy.apply(lambda x: u.Quantity(
+                float(x.split()[0]), u.keV).to(u.erg).value)
+        if 'intensity' in df.columns:
+            df.intensity = df.intensity.apply(lambda x:
+                                              float(x.split('%')[0])/100.)
+
+        if 'dose' in df.columns:
+            del df['dose']
+
+        return df
+
+    def _default_parse(self, html_table):
+        df = self._convert_html_to_df(html_table, self.columns)
+        df = self._sanititze_table(df)
+
+        return {self.name : df}
+
+    def parse(self, html_table):
+        return self._default_parse(html_table)
+
+
+class ElectronTableParser(BaseParser):
+    html_name = 'Electrons'
+    name = 'electrons'
     columns = ['type', 'energy', 'intensity', 'dose']
-    df = pd.read_html(unicode(electrons_table))[0].iloc[1:]
-    df.columns = columns
 
-    df.energy = df.energy.apply(lambda x: u.Quantity(float(x.split()[0]),
-                                                     u.keV).to(u.erg).value)
-    df.intensity = df.intensity.apply(lambda x: float(x.split('%')[0])/100.)
-    del df['dose']
 
-    return 'electrons', df
-
-def parse_x_gamma_table(x_gamma_table):
+class BetaPlusTableParser(BaseParser):
+    html_name = 'Beta+'
+    name = 'beta_plus'
     columns = ['type', 'energy', 'intensity', 'dose']
 
-    df = pd.read_html(unicode(x_gamma_table))[0].iloc[1:]
-    df.columns = columns
 
-    df.energy = df.energy.apply(lambda x: u.Quantity(float(x.split()[0]),
-                                                     u.keV).to(u.erg).value)
-    df.intensity = df.intensity.apply(lambda x: float(x.split('%')[0])/100.)
-    del df['dose']
-    return 'x_gamma_rays', df
-
-def parse_beta_plus_table(beta_plus_table):
-    columns = ['energy', 'end_point_energy', 'intensity', 'dose']
-
-    df = pd.read_html(unicode(beta_plus_table))[0].iloc[1:]
-    df.columns = columns
-
-    df.energy = df.energy.apply(lambda x: u.Quantity(float(x.split()[0]),
-                                                     u.keV).to(u.erg).value)
-
-    df.end_point_energy = df.end_point_energy.apply(lambda x: u.Quantity(
-        float(x.split()[0]), u.keV).to(u.erg).value)
-    df.intensity = df.intensity.apply(lambda x: float(x.split('%')[0])/100.)
-    del df['dose']
-
-    return 'beta_plus', df
+class BetaMinusTableParser(BaseParser):
+    html_name = 'Beta-'
+    name = 'beta_minus'
+    columns = ['type', 'energy', 'intensity', 'dose']
 
 
-decay_radiation_parsers = {'Electrons': parse_electrons_table,
-                           'Beta+': parse_beta_plus_table,
-                           'Gamma and X-ray radiation': parse_x_gamma_table}
+
+class XGammaRayParser(BaseParser):
+    html_name = 'Gamma and X-ray radiation'
+    columns = ['type', 'energy', 'intensity', 'dose']
+
+    def parse(self, html_table):
+        df = self._convert_html_to_df(html_table, self.columns)
+        df = self._sanititze_table(df)
+
+        x_ray_mask = df.type.str.startswith('XR')
+
+        results = {}
+        results['x_rays'] = df[x_ray_mask]
+        results['gamma_rays'] = df[~x_ray_mask]
+        return results
+
+
+
+
+
+
+decay_radiation_parsers = {item.html_name:item()
+                          for item in BaseParser.__subclasses__()}
+

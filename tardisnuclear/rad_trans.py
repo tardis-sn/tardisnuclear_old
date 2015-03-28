@@ -4,7 +4,7 @@ from astropy import units as u
 from tardisnuclear.io import get_decay_radiation
 
 class BaseRadiationTransfer(object):
-    def __init__(self, ejecta):
+    def __init__(self, ejecta, nuclear_data):
         self.ejecta = ejecta
         self.decay_const = ejecta.get_decay_const()
         self.decay_radiation_data = self._get_decay_radiation_data(ejecta)
@@ -18,18 +18,24 @@ class BaseRadiationTransfer(object):
 
 
 class SimpleLateTime(BaseRadiationTransfer):
-    def __init__(self, ejecta):
+    def __init__(self, ejecta, nuclear_data):
         super(SimpleLateTime, self).__init__(ejecta)
         current_ejecta = self.ejecta.decay(1 * u.s)
         self.total_electron_energy_per_decay = {}
-        self.total_beta_plus_energy_per_decay = {}
+        self.total_positron_energy_per_decay = {}
 
         for nuclear_name in current_ejecta.isotopes:
             nuclear_rad_data = self.decay_radiation_data[nuclear_name]
             if 'beta_plus' in nuclear_rad_data:
                 current_data = nuclear_rad_data['beta_plus']
-                self.total_beta_plus_energy_per_decay[nuclear_name] = (
+                self.total_positron_energy_per_decay[nuclear_name] = (
                     current_data.energy * current_data.intensity).sum()
+
+            if 'beta_minus' in nuclear_rad_data:
+                current_data = nuclear_rad_data['beta_minus']
+                self.total_electron_energy_per_decay[nuclear_name] = (
+                    current_data.energy * current_data.intensity).sum()
+
 
             if 'electrons' in nuclear_rad_data:
                 current_data = nuclear_rad_data['electrons']
@@ -54,10 +60,10 @@ class SimpleLateTime(BaseRadiationTransfer):
                     self.total_electron_energy_per_decay[nuclear_name]
                     * self.decay_const[nuclear_name])
 
-            if nuclear_name in self.total_beta_plus_energy_per_decay:
+            if nuclear_name in self.total_positron_energy_per_decay:
                 beta_plus_energy[nuclear_name] = (
                     nuclear_number *
-                    self.total_beta_plus_energy_per_decay[nuclear_name] *
+                    self.total_positron_energy_per_decay[nuclear_name] *
                     self.decay_const[nuclear_name])
 
         return electron_energy, beta_plus_energy
