@@ -164,13 +164,13 @@ class ElectronTableParser(BaseParser):
 class BetaPlusTableParser(BaseParser):
     html_name = 'Beta+'
     name = 'beta_plus'
-    columns = ['type', 'energy', 'intensity', 'dose']
+    columns = ['type', 'end_point_energy', 'energy', 'intensity', 'dose']
 
 
 class BetaMinusTableParser(BaseParser):
     html_name = 'Beta-'
     name = 'beta_minus'
-    columns = ['type', 'energy', 'intensity', 'dose']
+    columns = ['type', 'end_point_energy', 'energy', 'intensity', 'dose']
 
 
 

@@ -28,7 +28,7 @@ class Ejecta(object):
 
     @classmethod
     def from_yann_file(cls, fname):
-        data = pd.read_table('ddt_ryields.txt',
+        data = pd.read_table(fname,
                              names=['isotope', 'mass'], delim_whitespace=True)
 
         data = data.set_index('isotope')
