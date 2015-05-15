@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 from astropy import units as u
 import pandas as pd
 from pyne.material import Material
@@ -60,6 +62,10 @@ class Ejecta(object):
     def __init__(self, mass_msol, composition):
         self.mass_g = mass_msol * msun_to_cgs
         self.material = Material(self._normalize_composition(composition))
+        self._pad_material()
+        atomic_masses = self.get_masses()
+        self.n_per_g = [1 / atomic_masses[item]
+                            for item in self.get_all_children_nuc_name()]
 
 
     @property
@@ -82,9 +88,9 @@ class Ejecta(object):
         return [nucname.name(id) for id in self.keys()]
 
     def get_decay_const(self):
-        return {nuc_name:data.decay_const(nuc_id)
+        return OrderedDict((nuc_name, data.decay_const(nuc_id))
                 for nuc_id, nuc_name in zip(self.get_all_children(),
-                                            self.get_all_children_nuc_name())}
+                                            self.get_all_children_nuc_name()))
 
     def get_half_life(self):
         return [data.half_life(nuc_id) for nuc_id in self.keys()]
@@ -106,7 +112,7 @@ class Ejecta(object):
             children_set.add(nuc_id)
             get_child(nuc_id)
 
-        return children_set
+        return sorted(children_set)
 
     def get_all_children_nuc_name(self):
         return [nucname.name(nuc_id) for nuc_id in self.get_all_children()]
@@ -119,10 +125,40 @@ class Ejecta(object):
                               for key, value in composition.items()}
         return normed_composition
 
+    def _pad_material(self):
+        for isotope in self.get_all_children_nuc_name():
+            try:
+                self.material[isotope]
+            except KeyError:
+                self.material[isotope] = 0.0
+
 
     def decay(self, time):
         new_material= self.material.decay(time.to(u.s).value)
         return self.__class__(self.mass_g / msun_to_cgs, new_material)
+
+    def decay_epochs(self, epochs):
+        epochs = u.Quantity(epochs, u.day)
+        isotope_children = self.get_all_children()
+        columns = self.get_all_children_nuc_name()
+        decayed_fractions = pd.DataFrame(index=epochs.value, columns=columns,
+                                       dtype=np.float64)
+        day_to_s = 24 * 3600
+        for epoch, row in decayed_fractions.iterrows():
+            new_material = self.material.decay(epoch * day_to_s)
+            fractions = [0.0 if key not in new_material else new_material[key]
+                         for key in isotope_children]
+            row.values[:] = fractions
+        return decayed_fractions
+
+    def get_decayed_numbers(self, epochs):
+        epochs = u.Quantity(epochs, u.day)
+
+        fractions = self.decay_epochs(epochs)
+
+        return fractions * self.mass_g * self.n_per_g
+
+
 
     def __repr__(self):
         return self.material.__str__()

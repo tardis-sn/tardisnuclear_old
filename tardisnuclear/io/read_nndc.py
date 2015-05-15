@@ -136,6 +136,10 @@ class BaseParser():
         if 'energy' in df.columns:
             df.energy = df.energy.apply(lambda x: u.Quantity(
                 float(x.split()[0]), u.keV).to(u.erg).value)
+        if 'end_point_energy' in df.columns:
+            df.end_point_energy = df.end_point_energy.apply(lambda x: u.Quantity(
+                float(x.split()[0]), u.keV).to(u.erg).value)
+
         if 'intensity' in df.columns:
             df.intensity = df.intensity.apply(lambda x:
                                               float(x.split('%')[0])/100.)
@@ -164,13 +168,13 @@ class ElectronTableParser(BaseParser):
 class BetaPlusTableParser(BaseParser):
     html_name = 'Beta+'
     name = 'beta_plus'
-    columns = ['type', 'end_point_energy', 'energy', 'intensity', 'dose']
+    columns = ['energy', 'end_point_energy', 'intensity', 'dose']
 
 
 class BetaMinusTableParser(BaseParser):
     html_name = 'Beta-'
     name = 'beta_minus'
-    columns = ['type', 'end_point_energy', 'energy', 'intensity', 'dose']
+    columns = ['energy', 'end_point_energy', 'intensity', 'dose']
 
 
 
