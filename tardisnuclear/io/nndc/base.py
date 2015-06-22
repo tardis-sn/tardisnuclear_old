@@ -10,15 +10,31 @@ import numpy as np
 from astropy import units as u
 
 #getting the data_path
-import tardisnuclear
-data_path = os.path.join(tardisnuclear.__path__[0], 'data')
 
+data_path = os.path.join(os.path.expanduser('~/.tardisnuclear'))
+
+
+
+from pyne import nucname
 from abc import ABCMeta
 
 
+def _get_nuclear_database_path():
+    if not os.path.exists(data_path):
+        os.mkdir(data_path)
+    return os.path.join(data_path, 'decay_radiation.h5')
+
+def _sanitize_nuclear_string(nuclear_string):
+    try:
+        sanitized_nuclear_string = nucname.name(nuclear_string)
+    except RuntimeError:
+        raise ValueError('{0} not a valid isotope string'.format(
+            nuclear_string))
+    else:
+        return sanitized_nuclear_string
 
 def download_decay_radiation(nuclear_string):
-    nuclear_string = nuclear_string.title()
+    nuclear_string = _sanitize_nuclear_string(nuclear_string)
     base_url = ('http://www.nndc.bnl.gov/chart/decaysearchdirect.jsp?'
                 'nuc={nucname}&unc=nds')
 
@@ -77,7 +93,7 @@ def store_decay_radiation_from_ejecta(ejecta, force_update=False):
 
 
 def store_decay_radiation(nuclear_string, force_update=False):
-    nuclear_string = nuclear_string.title()
+    nuclear_string = _sanitize_nuclear_string(nuclear_string)
     fname = os.path.join(data_path, 'decay_radiation.h5')
     with pd.HDFStore(fname, mode='a') as ds:
         if nuclear_string in ds and not force_update:
@@ -101,7 +117,7 @@ def store_decay_radiation(nuclear_string, force_update=False):
 
 
 def get_decay_radiation(nuclear_string, data_set_idx=0):
-    nuclear_string = nuclear_string.title()
+    nuclear_string = _sanitize_nuclear_string(nuclear_string)
     fname = os.path.join(data_path, 'decay_radiation.h5')
     with pd.HDFStore(fname, mode='r') as ds:
         current_keys = [key for key in ds.keys()
