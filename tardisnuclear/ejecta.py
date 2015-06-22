@@ -132,12 +132,20 @@ class Ejecta(object):
             except KeyError:
                 self.material[isotope] = 0.0
 
+    def decay(self, epochs):
+        """
+        Decay the ejecta material
 
-    def decay(self, time):
-        new_material= self.material.decay(time.to(u.s).value)
-        return self.__class__(self.mass_g / msun_to_cgs, new_material)
+        Parameters
+        ----------
 
-    def decay_epochs(self, epochs):
+        epochs: numpy or quantity array
+
+        Returns
+        -------
+            : ~pd.DataFrame
+
+        """
         epochs = u.Quantity(epochs, u.day)
         isotope_children = self.get_all_children()
         columns = self.get_all_children_nuc_name()

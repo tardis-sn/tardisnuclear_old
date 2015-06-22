@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 import bs4
 import pandas as pd
-import numpy as np
+
 from astropy import units as u
 
 #getting the data_path
@@ -37,9 +37,9 @@ def download_decay_radiation(nuclear_string):
     nuclear_string = _sanitize_nuclear_string(nuclear_string)
     base_url = ('http://www.nndc.bnl.gov/chart/decaysearchdirect.jsp?'
                 'nuc={nucname}&unc=nds')
-
-    nuclear_bs = bs4.BeautifulSoup(urllib2.urlopen(
-        base_url.format(nucname=nuclear_string.upper())))
+    data_url = base_url.format(nucname=nuclear_string.upper())
+    logger.info('Downloading data from {0}'.format(data_url))
+    nuclear_bs = bs4.BeautifulSoup(urllib2.urlopen(data_url))
 
     data_list = nuclear_bs.find_all('u')
     if data_list == []:
@@ -94,7 +94,7 @@ def store_decay_radiation_from_ejecta(ejecta, force_update=False):
 
 def store_decay_radiation(nuclear_string, force_update=False):
     nuclear_string = _sanitize_nuclear_string(nuclear_string)
-    fname = os.path.join(data_path, 'decay_radiation.h5')
+    fname = _get_nuclear_database_path()
     with pd.HDFStore(fname, mode='a') as ds:
         if nuclear_string in ds and not force_update:
             raise IOError('{0} is already in the database '
@@ -118,7 +118,17 @@ def store_decay_radiation(nuclear_string, force_update=False):
 
 def get_decay_radiation(nuclear_string, data_set_idx=0):
     nuclear_string = _sanitize_nuclear_string(nuclear_string)
-    fname = os.path.join(data_path, 'decay_radiation.h5')
+    fname = _get_nuclear_database_path()
+
+    if not os.path.exists(fname):
+        if (not raw_input('{0} not in database - download [Y/n]'.format(
+                nuclear_string)).lower() == 'n'):
+            store_decay_radiation(nuclear_string)
+        else:
+            raise ValueError('{0} not in database'.format(
+                        nuclear_string))
+
+
     with pd.HDFStore(fname, mode='r') as ds:
         current_keys = [key for key in ds.keys()
                             if key.startswith('/{0}/data_set{1:d}'.format(
@@ -129,7 +139,14 @@ def get_decay_radiation(nuclear_string, data_set_idx=0):
                     nuclear_string))
                 return {}
             else:
-                raise ValueError('{0} not in database'.format(nuclear_string))
+                if (not raw_input(
+                        '{0} not in database - download [Y/n]'.format(
+                            nuclear_string)).lower() == 'n'):
+                    ds.close()
+                    store_decay_radiation(nuclear_string)
+                else:
+                    raise ValueError('{0} not in database'.format(
+                        nuclear_string))
         data_set = {}
         for key in current_keys:
             data_set[key.split('/')[-1]] = ds[key]
