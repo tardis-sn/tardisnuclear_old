@@ -56,7 +56,6 @@ class Ejecta(object):
         mass = sum(kwargs.values()).to(u.Msun)
         composition = {key:float(value / mass) for key, value in kwargs.items()}
 
-
         return cls(mass.value, composition)
 
     def __init__(self, mass_msol, composition):
