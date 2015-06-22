@@ -1,13 +1,18 @@
-Documentation
-=============
+TARDIS Nuclear
+==============
 
-This is an affiliated package for the AstroPy package. The documentation for
-this package is here:
+TARDIS Nuclear is a framework to calculate the energy budget from nuclear
+decay in supernovae. It is a companion package to the TARDIS SN radiative
+transfer code and in the future these packages are intended to work together.
+Furthermore, this code can be used to calculate simple bolometric lightcurves.
 
 .. toctree::
-  :maxdepth: 2
+    :maxdepth: 2
 
-  packagename/index.rst
+    install.rst
+    getting_started.rst
 
-.. note:: Do not edit this page - instead, place all documentation for the
-          affiliated package inside ``packagename/``
+
+
+
+

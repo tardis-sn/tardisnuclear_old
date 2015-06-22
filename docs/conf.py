@@ -41,6 +41,26 @@ except ImportError:
 # Load all of the global Astropy configuration
 from astropy_helpers.sphinx.conf import *
 
+#extensions = [
+#    'sphinx.ext.autodoc',
+#    'sphinx.ext.intersphinx',
+#    'sphinx.ext.todo',
+#    'sphinx.ext.coverage',
+#    'sphinx.ext.pngmath',
+#    'sphinx.ext.inheritance_diagram',
+#    'astropy_helpers.sphinx.ext.numpydoc',
+#    'astropy_helpers.sphinx.ext.astropyautosummary',
+#    'astropy_helpers.sphinx.ext.automodsumm',
+#    'astropy_helpers.sphinx.ext.automodapi',
+#    'astropy_helpers.sphinx.ext.tocdepthfix',
+#    'astropy_helpers.sphinx.ext.doctest',
+#    'astropy_helpers.sphinx.ext.changelog_links',
+#    'astropy_helpers.sphinx.ext.viewcode',  # Use patched version of viewcode
+#    'astropy_helpers.sphinx.ext.smart_resolver'
+#    ]
+extensions.pop(extensions.index('astropy_helpers.sphinx.ext.automodsumm'))
+extensions.pop(extensions.index('astropy_helpers.sphinx.ext.automodapi'))
+
 # Get configuration information from setup.cfg
 from distutils import config
 conf = config.ConfigParser()
