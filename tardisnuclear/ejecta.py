@@ -161,7 +161,7 @@ class Ejecta(object):
     def get_decayed_numbers(self, epochs):
         epochs = u.Quantity(epochs, u.day)
 
-        fractions = self.decay_epochs(epochs)
+        fractions = self.decay(epochs)
 
         return fractions * self.mass_g * self.n_per_g
 
