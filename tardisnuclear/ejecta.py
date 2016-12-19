@@ -86,7 +86,7 @@ class Ejecta(object):
     def isotopes(self):
         return [nucname.name(id) for id in self.keys()]
 
-    def get_decay_const(self):
+    def get_decay_constant(self):
         return OrderedDict((nuc_name, data.decay_const(nuc_id))
                 for nuc_id, nuc_name in zip(self.get_all_children(),
                                             self.get_all_children_nuc_name()))

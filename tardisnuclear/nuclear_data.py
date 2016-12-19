@@ -1,7 +1,7 @@
 from tardisnuclear.io import get_decay_radiation
 from pyne import nucname
 
-class NuclearData(object):
+class DecayRadiation(object):
 
     def __init__(self, isotope_list):
         self.data = self._get_decay_radiation_data(isotope_list)
@@ -20,6 +20,7 @@ class NuclearData(object):
                 isotope = nucname.name(item)
 
         return self.data[isotope]
+
 
     @staticmethod
     def _get_decay_radiation_data(isotope_list):

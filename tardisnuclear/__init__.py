@@ -11,7 +11,7 @@ from ._astropy_init import *
 # ----------------------------------------------------------------------------
 
 from tardisnuclear.ejecta import Ejecta
-from tardisnuclear.nuclear_data import NuclearData
+from tardisnuclear.nuclear_data import DecayRadiation
 
 import logging
 

@@ -6,7 +6,7 @@ from astropy import modeling
 from itertools import chain
 from tardisnuclear.ejecta import Ejecta
 from tardisnuclear.rad_trans import SimpleLateTime
-from tardisnuclear.nuclear_data import NuclearData
+from tardisnuclear.nuclear_data import DecayRadiation
 
 from scipy import stats
 from collections import OrderedDict
@@ -39,7 +39,7 @@ class BolometricLightCurveModelIa(object):
         self.lum_dens_err = lum_dens_err
         self.ejecta = Ejecta.from_masses(Ni56=ni56 * u.Msun, Ni57=ni57 * u.Msun,
                                          Co55=co55 * u.Msun, Ti44=ti44 * u.Msun)
-        self.nuclear_data = NuclearData(self.ejecta.get_all_children_nuc_name())
+        self.nuclear_data = DecayRadiation(self.ejecta.get_all_children_nuc_name())
         self.rad_trans = SimpleLateTime(self.ejecta, self.nuclear_data)
 
     def calculate_light_curve(self, ni56, ni57, co55, ti44, fraction=1.0,
