@@ -5,7 +5,8 @@ import sys
 from astropy import modeling
 from itertools import chain
 from tardisnuclear.ejecta import Ejecta
-from tardisnuclear.rad_trans import SimpleLateTime
+
+
 from tardisnuclear.nuclear_data import DecayRadiation
 
 from scipy import stats

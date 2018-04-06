@@ -4,24 +4,35 @@ import numpy as np
 from astropy.modeling import FittableModel, Parameter
 from astropy import units as u
 from pyne import nucname
+import pandas as pd
 
 from tardisnuclear.ejecta import Ejecta, msun_to_cgs
-from tardisnuclear.rad_trans import SimpleLateTime
+
 from tardisnuclear.nuclear_data import DecayRadiation
 
 mpc_to_cm = u.Mpc.to(u.cm)
 
 class BaseEnergyInjection(FittableModel):
-    inputs = ('epoch', )
-    outputs = ('epoch', 'lepton', 'x-ray', 'gamma-ray')
+    inputs = ('time', )
+    outputs = ('time', 'total')
 
     standard_broadcasting = False
 
-    def __init__(self, **kwargs):
+    def __init__(self, cutoff_em_energy, **kwargs):
         super(BaseEnergyInjection, self).__init__(**kwargs)
+
         self._init_ejecta(kwargs)
-        nuclear_data = DecayRadiation(self.ejecta.get_all_children_nuc_name())
-        self.rad_trans = SimpleLateTime(self.ejecta, nuclear_data)
+        decay_constant = self.ejecta.get_decay_constant()
+
+        self.decay_constant = pd.DataFrame(data=[decay_constant.values()],
+                                           columns=decay_constant.keys())
+        self.decay_radiation = DecayRadiation(
+            self.ejecta.get_all_children_nuc_name())
+
+        self.em_energy_per_decay = self._get_em_energy_per_decay(
+            cutoff_energy=cutoff_em_energy)
+        self.lepton_energy_per_decay = self._get_lepton_energy_per_decay()
+
 
     def _init_ejecta(self, isotope_dict):
         titled_isotope_dict = {name.title():value * u.Msun
@@ -35,18 +46,78 @@ class BaseEnergyInjection(FittableModel):
         for isotope_name, isotope_mass in zip(self.param_names, isotope_masses):
             self.ejecta[isotope_name.title()] = isotope_mass / total_mass
 
-    def evaluate_simple_combined(self, epoch, *args):
-        self._update_ejecta(args)
-        return (self.rad_trans.bolometric_light_curve(
-            epoch, channels=self.channels), epoch)
+    def _get_lepton_energy_per_decay(self):
+        """
+        Get the lepton energy for decay for each of the isotopes
 
-    def evaluate(self, epoch, *args):
-        self._update_ejecta(args)
-        return tuple(
-            itertools.chain((epoch,),
-                            self.rad_trans.calculate_energy_output(epoch)))
+        Returns
+        =======
+            : pandas.DataFrame
 
-def make_energy_injection_model(**kwargs):
+        """
+        energies_per_decay = np.zeros(len(self.ejecta.isotopes))
+        for channel in ['beta_plus', 'beta_minus', 'electrons']:
+            energy_per_decay = []
+            for isotope in self.ejecta.isotopes:
+                decay_rad = self.decay_radiation[isotope].get(channel, None)
+                if decay_rad is None:
+                    energy_per_decay.append(0.0)
+                else:
+                    energy_per_decay.append(decay_rad.energy.sum())
+            energies_per_decay += energy_per_decay
+        data = [
+            self.decay_radiation[isotope].get(
+                'total_lepton_energy_per_decay', 0.0)
+            for isotope in self.ejecta.isotopes]
+        return pd.DataFrame(data=[data], columns=self.ejecta.isotopes)
+
+    def _get_em_energy_per_decay(self, cutoff_energy=np.inf):
+        """
+        Get the electromagnetic energy per decay for each of the isotopes
+
+        Parameters
+        ----------
+        cutoff_energy : float or astropy.Quantity
+            count energies up to this value into the energy contribution
+            [default = +inf]
+
+        Returns
+        -------
+            : pandas.DataFrame
+        """
+        cutoff_energy = u.Quantity(cutoff_energy, u.eV).to('erg').value
+        energies_per_decay = []
+        for isotope in self.ejecta.isotopes:
+            xray = self.decay_radiation[isotope].get('x_rays', None)
+            gammaray = self.decay_radiation[isotope].get('gamma_rays', None)
+
+            if (xray is None) and (gammaray is None):
+                energies_per_decay.append(0)
+                continue
+            em_table = pd.concat([xray, gammaray]).sort_values('energy')
+            cutoff_energy_id = em_table.energy.searchsorted(cutoff_energy)[0]
+            energies_per_decay.append(
+                (em_table.energy[:cutoff_energy_id] *
+                 em_table.intensity[:cutoff_energy_id]).sum())
+
+        return pd.DataFrame(data=[energies_per_decay],
+                            columns=self.ejecta.isotopes)
+
+
+    def calculate_injected_energy_per_s(self, time):
+        energy_per_s = ((
+            (self.em_energy_per_decay + self.lepton_energy_per_decay) *
+            self.decay_constant).values * self.ejecta.get_decayed_numbers(time))
+        return energy_per_s
+
+    def evaluate(self, time, *args):
+        self._update_ejecta(args)
+        return time, (
+            self.calculate_injected_energy_per_s(time).sum(axis=1).values)
+
+
+
+def make_energy_injection_model(cutoff_em_energy=20*u.keV, **kwargs):
     """
     Make a bolometric lightcurve model
     :param kwargs:
@@ -66,7 +137,7 @@ def make_energy_injection_model(**kwargs):
     EnergyInjection = type('EnergyInjection',
                                 (BaseEnergyInjection,), class_dict)
 
-    return EnergyInjection(**init_kwargs)
+    return EnergyInjection(cutoff_em_energy, **init_kwargs)
 
 class RSquared(FittableModel):
     inputs = ('epoch', 'luminosity', )
