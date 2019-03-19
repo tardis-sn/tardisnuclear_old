@@ -1,4 +1,4 @@
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import os
 import logging
 
@@ -39,7 +39,7 @@ def download_decay_radiation(nuclear_string):
                 'nuc={nucname}&unc=nds')
     data_url = base_url.format(nucname=nuclear_string.upper())
     logger.info('Downloading data from {0}'.format(data_url))
-    nuclear_bs = bs4.BeautifulSoup(urllib2.urlopen(data_url))
+    nuclear_bs = bs4.BeautifulSoup(urllib.request.urlopen(data_url))
 
     data_list = nuclear_bs.find_all('u')
     if data_list == []:
@@ -66,7 +66,7 @@ def download_decay_radiation(nuclear_string):
         elif data_name.startswith('Citation'):
             pass
         else:
-            print "Data \"{0}\" is not recognized".format(item.get_text())
+            print("Data \"{0}\" is not recognized".format(item.get_text()))
 
     if current_data_set != {}:
             data_sets.append(current_data_set)
@@ -83,12 +83,12 @@ def store_decay_radiation_from_ejecta(ejecta, force_update=False):
     """
 
     for isotope in ejecta.get_all_children_nuc_name():
-        print "Working on isotope", isotope
+        print("Working on isotope", isotope)
         try:
             store_decay_radiation(isotope, force_update=force_update)
         except IOError as e:
-            print str(e)
-            print "skipping"
+            print(str(e))
+            print("skipping")
 
 
 
@@ -102,14 +102,14 @@ def store_decay_radiation(nuclear_string, force_update=False):
         try:
             data_set_list = download_decay_radiation(nuclear_string)
         except ValueError:
-            print "{0} is stable - making empty dataset".format(nuclear_string)
+            print("{0} is stable - making empty dataset".format(nuclear_string))
             ds['{0}'.format(nuclear_string)] = pd.DataFrame()
         else:
             for i, data_set in enumerate(data_set_list):
-                for key, value in data_set.items():
+                for key, value in list(data_set.items()):
                     group_str = '{0}/data_set{1}/{2}'.format(nuclear_string, i,
                                                              key)
-                    print "Writing group", group_str
+                    print("Writing group", group_str)
                     ds[group_str] = value
         ds.flush()
         ds.close()
@@ -121,7 +121,7 @@ def get_decay_radiation(nuclear_string, data_set_idx=0):
     fname = _get_nuclear_database_path()
 
     if not os.path.exists(fname):
-        if (not raw_input('{0} not in database - download [Y/n]'.format(
+        if (not input('{0} not in database - download [Y/n]'.format(
                 nuclear_string)).lower() == 'n'):
             store_decay_radiation(nuclear_string)
         else:
@@ -130,16 +130,16 @@ def get_decay_radiation(nuclear_string, data_set_idx=0):
 
 
     with pd.HDFStore(fname, mode='r') as ds:
-        current_keys = [key for key in ds.keys()
+        current_keys = [key for key in list(ds.keys())
                             if key.startswith('/{0}/data_set{1:d}'.format(
                 nuclear_string, data_set_idx))]
         if len(current_keys) == 0:
-            if '/{0}'.format(nuclear_string) in ds.keys():
+            if '/{0}'.format(nuclear_string) in list(ds.keys()):
                 logger.debug('{0} is stable - no decay radiation available'.format(
                     nuclear_string))
                 return {}
             else:
-                if (not raw_input(
+                if (not input(
                         '{0} not in database - download [Y/n]'.format(
                             nuclear_string)).lower() == 'n'):
                     ds.close()
@@ -154,12 +154,10 @@ def get_decay_radiation(nuclear_string, data_set_idx=0):
 
 
 
-class BaseParser():
-    __metaclass__ = ABCMeta
-
+class BaseParser(metaclass=ABCMeta):
     @staticmethod
     def _convert_html_to_df(html_table, column_names):
-        df = pd.read_html(unicode(html_table))[0].iloc[1:]
+        df = pd.read_html(str(html_table))[0].iloc[1:]
         df.columns = column_names
         if 'type' in column_names:
             df.type[df.type.isnull()] = ''

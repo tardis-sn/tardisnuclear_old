@@ -25,9 +25,9 @@ class DecayRadiation(object):
     @staticmethod
     def _get_decay_radiation_data(isotope_list):
         decay_radiation = {}
-        print "Reading",
+        print("Reading", end='')
         for nuclear_name in isotope_list:
-            print nuclear_name
+            print(nuclear_name)
             isotope_nuclear_data = get_decay_radiation(nuclear_name)
             for data_name, data_table in isotope_nuclear_data.items():
                 if (('energy' in data_table.columns)
