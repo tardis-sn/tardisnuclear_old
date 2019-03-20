@@ -1,4 +1,3 @@
-import itertools
 import numpy as np
 
 from astropy.modeling import FittableModel, Parameter
@@ -35,7 +34,7 @@ class BaseEnergyInjection(FittableModel):
 
 
     def _init_ejecta(self, isotope_dict):
-        titled_isotope_dict = {name.title():value * u.Msun
+        titled_isotope_dict = {name.title() : value * u.Msun
                                for name, value in isotope_dict.items()}
         self.ejecta = Ejecta.from_masses(**titled_isotope_dict)
 
@@ -112,10 +111,7 @@ class BaseEnergyInjection(FittableModel):
 
     def evaluate(self, time, *args):
         self._update_ejecta(args)
-        return time, (
-            self.calculate_injected_energy_per_s(time).sum(axis=1).values)
-
-
+        return (time, self.calculate_injected_energy_per_s(time).sum(axis=1).values)
 
 def make_energy_injection_model(cutoff_em_energy=20*u.keV, **kwargs):
     """

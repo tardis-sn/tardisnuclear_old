@@ -1,6 +1,5 @@
 from collections import OrderedDict
 
-from astropy import units as u
 import pandas as pd
 from pyne.material import Material
 from pyne import data
@@ -54,7 +53,7 @@ class Ejecta(object):
         """
 
         mass = sum(kwargs.values()).to(u.Msun)
-        composition = {key:float(value / mass) for key, value in kwargs.items()}
+        composition = {key : float(value / mass) for key, value in kwargs.items()}
 
         return cls(mass.value, composition)
 
@@ -70,8 +69,6 @@ class Ejecta(object):
     @property
     def mass(self):
         return self.mass_g * u.g
-
-
 
     def __getitem__(self, item):
         return self.material.__getitem__(item)
