@@ -29,7 +29,7 @@ class DecayRadiation(object):
         for nuclear_name in isotope_list:
             print(nuclear_name)
             isotope_nuclear_data = get_decay_radiation(nuclear_name)
-            for data_name, data_table in isotope_nuclear_data.items():
+            for data_name, data_table in list(isotope_nuclear_data.items()):
                 if (('energy' in data_table.columns)
                     and ('intensity' in data_table.columns)):
                     data_table['energy_per_decay'] = (data_table.energy *

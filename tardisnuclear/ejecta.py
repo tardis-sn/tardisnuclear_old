@@ -116,7 +116,7 @@ class Ejecta(object):
 
     @staticmethod
     def _normalize_composition(composition):
-        composition_sum = np.sum(composition.values())
+        composition_sum = np.sum(list(composition.values()))
         normed_composition = {key:value/composition_sum
                               for key, value in composition.items()}
         return normed_composition

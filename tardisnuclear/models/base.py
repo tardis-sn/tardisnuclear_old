@@ -94,7 +94,7 @@ class BaseEnergyInjection(FittableModel):
                 energies_per_decay.append(0)
                 continue
             em_table = pd.concat([xray, gammaray]).sort_values('energy')
-            cutoff_energy_id = em_table.energy.searchsorted(cutoff_energy)[0]
+            cutoff_energy_id = em_table.energy.searchsorted(cutoff_energy)
             energies_per_decay.append(
                 (em_table.energy[:cutoff_energy_id] *
                  em_table.intensity[:cutoff_energy_id]).sum())

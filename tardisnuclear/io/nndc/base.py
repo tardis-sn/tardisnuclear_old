@@ -25,6 +25,7 @@ class ENSDFReader:
     def __init__(self, fname):
 
         #### Still seemingly missing several bits of data from NNDC ###
+        raise NotImplementedError('Not quite working yet')
         raw_decay_list = ensdf.decays(fname)[0]
 
         self.parent_nuc_id = raw_decay_list[0]
@@ -222,6 +223,7 @@ def get_decay_radiation(nuclear_string, data_set_idx=0):
 
 
 class BaseParser(metaclass=ABCMeta):
+
     @staticmethod
     def _convert_html_to_df(html_table, column_names):
         df = pd.read_html(str(html_table))[0].iloc[1:]
@@ -229,8 +231,10 @@ class BaseParser(metaclass=ABCMeta):
         if 'type' in column_names:
             df.type[df.type.isnull()] = ''
         return df
+
     @staticmethod
     def _sanititze_table(df):
+        df = df.dropna()
         if 'energy' in df.columns:
             df.energy = df.energy.apply(lambda x: u.Quantity(
                 float(x.split()[0]), u.keV).to(u.erg).value)
