@@ -103,7 +103,7 @@ def _sanitize_nuclear_string(nuclear_string):
 
 def download_decay_radiation(nuclear_string):
     nuclear_string = _sanitize_nuclear_string(nuclear_string)
-    base_url = ('http://www.nndc.bnl.gov/chart/decaysearchdirect.jsp?'
+    base_url = ('http://www.nndc.bnl.gov/nudat2/decaysearchdirect.jsp?'
                 'nuc={nucname}&unc=nds')
     data_url = base_url.format(nucname=nuclear_string.upper())
     logger.info('Downloading data from {0}'.format(data_url))
