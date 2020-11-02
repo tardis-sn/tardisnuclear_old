@@ -103,6 +103,17 @@ class BaseEnergyInjection(FittableModel):
                             columns=self.ejecta.isotopes)
 
 
+    def calculate_lepton_energy_per_s(self, time):
+        energy_per_s = ((self.lepton_energy_per_decay *
+            self.decay_constant).values * self.ejecta.get_decayed_numbers(time))
+        return energy_per_s
+
+    def calculate_em_energy_per_s(self, time):
+        energy_per_s = ((self.em_energy_per_decay *
+            self.decay_constant).values * self.ejecta.get_decayed_numbers(time))
+        return energy_per_s
+
+
     def calculate_injected_energy_per_s(self, time):
         energy_per_s = ((
             (self.em_energy_per_decay + self.lepton_energy_per_decay) *
