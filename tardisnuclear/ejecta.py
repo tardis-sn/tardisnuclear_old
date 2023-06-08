@@ -117,9 +117,7 @@ class Ejecta(object):
     @staticmethod
     def _normalize_composition(composition):
         composition_sum = np.sum(list(composition.values()))
-        normed_composition = {key:value/composition_sum
-                              for key, value in composition.items()}
-        return normed_composition
+        return {key: value / composition_sum for key, value in composition.items()}
 
     def _pad_material(self):
         for isotope in self.get_all_children_nuc_name():

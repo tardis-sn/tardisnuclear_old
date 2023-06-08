@@ -120,7 +120,7 @@ if not _ASTROPY_SETUP_:
 
     if not os.environ.get('ASTROPY_SKIP_CONFIG_UPDATE', False):
         config_dir = os.path.dirname(__file__)
-        config_template = os.path.join(config_dir, __package__ + ".cfg")
+        config_template = os.path.join(config_dir, f"{__package__}.cfg")
         if os.path.isfile(config_template):
             try:
                 config.configuration.update_default_config(

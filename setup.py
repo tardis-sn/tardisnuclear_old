@@ -27,7 +27,9 @@ __minimum_python_version__ = metadata.get("minimum_python_version", "3.6")
 # Enforce Python version check - this is the same check as in __init__.py but
 # this one has to happen before importing ah_bootstrap.
 if sys.version_info < tuple((int(val) for val in __minimum_python_version__.split('.'))):
-    sys.stderr.write("ERROR: packagename requires Python {} or later\n".format(__minimum_python_version__))
+    sys.stderr.write(
+        f"ERROR: packagename requires Python {__minimum_python_version__} or later\n"
+    )
     sys.exit(1)
 
 # Import ah_bootstrap after the python version validation
@@ -50,8 +52,7 @@ from astropy_helpers.version_helpers import generate_version_py
 #   (3) load README.rst,
 #   (4) package docstring
 readme_glob = 'README*'
-_cfg_long_description = metadata.get('long_description', '')
-if _cfg_long_description:
+if _cfg_long_description := metadata.get('long_description', ''):
     LONG_DESCRIPTION = _cfg_long_description
 
 elif os.path.exists('LONG_DESCRIPTION.rst'):
@@ -118,31 +119,35 @@ if conf.has_section('entry_points'):
 # directory name.
 c_files = []
 for root, dirs, files in os.walk(PACKAGENAME):
-    for filename in files:
-        if filename.endswith('.c'):
-            c_files.append(
-                os.path.join(
-                    os.path.relpath(root, PACKAGENAME), filename))
+    c_files.extend(
+        os.path.join(os.path.relpath(root, PACKAGENAME), filename)
+        for filename in files
+        if filename.endswith('.c')
+    )
 package_info['package_data'][PACKAGENAME].extend(c_files)
 
 # Note that requires and provides should not be included in the call to
 # ``setup``, since these are now deprecated. See this link for more details:
 # https://groups.google.com/forum/#!topic/astropy-dev/urYO8ckB2uM
 
-setup(name=PACKAGENAME,
-      version=VERSION,
-      description=DESCRIPTION,
-      scripts=scripts,
-      install_requires=[s.strip() for s in metadata.get('install_requires', 'astropy').split(',')],
-      author=AUTHOR,
-      author_email=AUTHOR_EMAIL,
-      license=LICENSE,
-      url=URL,
-      long_description=LONG_DESCRIPTION,
-      cmdclass=cmdclassd,
-      zip_safe=False,
-      use_2to3=False,
-      entry_points=entry_points,
-      python_requires='>={}'.format(__minimum_python_version__),
-      **package_info
+setup(
+    name=PACKAGENAME,
+    version=VERSION,
+    description=DESCRIPTION,
+    scripts=scripts,
+    install_requires=[
+        s.strip()
+        for s in metadata.get('install_requires', 'astropy').split(',')
+    ],
+    author=AUTHOR,
+    author_email=AUTHOR_EMAIL,
+    license=LICENSE,
+    url=URL,
+    long_description=LONG_DESCRIPTION,
+    cmdclass=cmdclassd,
+    zip_safe=False,
+    use_2to3=False,
+    entry_points=entry_points,
+    python_requires=f'>={__minimum_python_version__}',
+    **package_info,
 )

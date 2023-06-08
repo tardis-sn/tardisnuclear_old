@@ -141,23 +141,25 @@ release = package.__version__
 html_title = '{0} v{1}'.format(project, release)
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = project + 'doc'
+htmlhelp_basename = f'{project}doc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
-latex_documents = [('index', project + '.tex', project + u' Documentation',
-                    author, 'manual')]
+latex_documents = [
+    ('index', f'{project}.tex', f'{project} Documentation', author, 'manual')
+]
 
 
 # -- Options for manual page output --------------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [('index', project.lower(), project + u' Documentation',
-              [author], 1)]
+man_pages = [
+    ('index', project.lower(), f'{project} Documentation', [author], 1)
+]
 
 
 ## -- Options for the edit_on_github extension ----------------------------------------
@@ -168,7 +170,7 @@ if eval(setup_cfg.get('edit_on_github')):
     versionmod = __import__(setup_cfg['package_name'] + '.version')
     edit_on_github_project = setup_cfg['github_project']
     if versionmod.version.release:
-        edit_on_github_branch = "v" + versionmod.version.version
+        edit_on_github_branch = f"v{versionmod.version.version}"
     else:
         edit_on_github_branch = "master"
 

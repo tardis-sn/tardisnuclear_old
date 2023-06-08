@@ -40,7 +40,7 @@ def _check_call_py24(cmd, *args, **kwargs):
     res = subprocess.call(cmd, *args, **kwargs)
     class CalledProcessError(Exception):
         pass
-    if not res == 0:
+    if res != 0:
         msg = "Command '%s' return non-zero exit status %d" % (cmd, res)
         raise CalledProcessError(msg)
 vars(subprocess).setdefault('check_call', _check_call_py24)
@@ -131,7 +131,7 @@ def use_setuptools(version=DEFAULT_VERSION, download_base=DEFAULT_URL,
     except ImportError:
         return _do_download(version, download_base, to_dir, download_delay)
     try:
-        pkg_resources.require("setuptools>=" + version)
+        pkg_resources.require(f"setuptools>={version}")
         return
     except pkg_resources.VersionConflict:
         e = sys.exc_info()[1]
@@ -182,10 +182,9 @@ def has_powershell():
     cmd = ['powershell', '-Command', 'echo test']
     devnull = open(os.path.devnull, 'wb')
     try:
-        try:
-            subprocess.check_call(cmd, stdout=devnull, stderr=devnull)
-        except:
-            return False
+        subprocess.check_call(cmd, stdout=devnull, stderr=devnull)
+    except:
+        return False
     finally:
         devnull.close()
     return True
@@ -200,10 +199,9 @@ def has_curl():
     cmd = ['curl', '--version']
     devnull = open(os.path.devnull, 'wb')
     try:
-        try:
-            subprocess.check_call(cmd, stdout=devnull, stderr=devnull)
-        except:
-            return False
+        subprocess.check_call(cmd, stdout=devnull, stderr=devnull)
+    except:
+        return False
     finally:
         devnull.close()
     return True
@@ -218,10 +216,9 @@ def has_wget():
     cmd = ['wget', '--version']
     devnull = open(os.path.devnull, 'wb')
     try:
-        try:
-            subprocess.check_call(cmd, stdout=devnull, stderr=devnull)
-        except:
-            return False
+        subprocess.check_call(cmd, stdout=devnull, stderr=devnull)
+    except:
+        return False
     finally:
         devnull.close()
     return True
@@ -281,7 +278,7 @@ def download_setuptools(version=DEFAULT_VERSION, download_base=DEFAULT_URL,
     """
     # making sure we use the absolute path
     to_dir = os.path.abspath(to_dir)
-    tgz_name = "setuptools-%s.tar.gz" % version
+    tgz_name = f"setuptools-{version}.tar.gz"
     url = download_base + tgz_name
     saveto = os.path.join(to_dir, tgz_name)
     if not os.path.exists(saveto):  # Avoid repeated downloads
@@ -335,7 +332,7 @@ def _extractall(self, path=".", members=None):
             if self.errorlevel > 1:
                 raise
             else:
-                self._dbg(1, "tarfile: %s" % e)
+                self._dbg(1, f"tarfile: {e}")
 
 
 def _build_install_args(options):

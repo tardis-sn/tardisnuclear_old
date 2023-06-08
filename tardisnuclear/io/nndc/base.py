@@ -26,27 +26,6 @@ class ENSDFReader:
 
         #### Still seemingly missing several bits of data from NNDC ###
         raise NotImplementedError('Not quite working yet')
-        raw_decay_list = ensdf.decays(fname)[0]
-
-        self.parent_nuc_id = raw_decay_list[0]
-        self.daughter_nuc_id = raw_decay_list[1]
-        self.reaction_id = raw_decay_list[2]
-        self.half_life = raw_decay_list[3]  # in s
-        self.half_life_uncert = raw_decay_list[4]  # in s
-        self.branching_ratio = raw_decay_list[5]  # percent
-        self.conversion_factor_gamma = raw_decay_list[6]
-        self.conversion_factor_gamma_uncert = raw_decay_list[7]
-        # for gamma intensity to photons per 100 decays of the parent
-
-        self.conversion_factor_lepton = raw_decay_list[8]
-        self.conversion_factor_lepton_uncert = raw_decay_list[9]
-        # Conversion factor for electron capture / beta intensity to
-        # electron captures / betas per 100 decays of the parent
-
-        self.gamma = self._gamma_to_dataframe(raw_decay_list[11])
-        self.alpha = self._alpha_to_dataframe(raw_decay_list[12])
-        self.beta_minus = self._beta_minus_to_dataframe(raw_decay_list[13])
-        self.beta_plus = self._beta_minus_to_dataframe(raw_decay_list[14])
 
     @staticmethod
     def _gamma_to_dataframe(gamma_list):
@@ -131,9 +110,7 @@ def download_decay_radiation(nuclear_string):
 
         elif data_name.startswith('Author'):
             pass
-        elif data_name.startswith('Citation'):
-            pass
-        else:
+        elif not data_name.startswith('Citation'):
             print("Data \"{0}\" is not recognized".format(item.get_text()))
 
     if current_data_set != {}:
@@ -155,7 +132,7 @@ def store_decay_radiation_from_ejecta(ejecta, force_update=False):
         try:
             store_decay_radiation(isotope, force_update=force_update)
         except IOError as e:
-            print(str(e))
+            print(e)
             print("skipping")
 
 
@@ -189,8 +166,12 @@ def get_decay_radiation(nuclear_string, data_set_idx=0):
     fname = _get_nuclear_database_path()
 
     if not os.path.exists(fname):
-        if (not input('{0} not in database - download [Y/n]'.format(
-                nuclear_string)).lower() == 'n'):
+        if (
+            input(
+                '{0} not in database - download [Y/n]'.format(nuclear_string)
+            ).lower()
+            != 'n'
+        ):
             store_decay_radiation(nuclear_string)
         else:
             raise ValueError('{0} not in database'.format(
@@ -201,23 +182,25 @@ def get_decay_radiation(nuclear_string, data_set_idx=0):
         current_keys = [key for key in list(ds.keys())
                             if key.startswith('/{0}/data_set{1:d}'.format(
                 nuclear_string, data_set_idx))]
-        if len(current_keys) == 0:
+        if not current_keys:
             if '/{0}'.format(nuclear_string) in list(ds.keys()):
                 logger.debug('{0} is stable - no decay radiation available'.format(
                     nuclear_string))
                 return {}
             else:
-                if (not input(
+                if (
+                    input(
                         '{0} not in database - download [Y/n]'.format(
-                            nuclear_string)).lower() == 'n'):
-                    ds.close()
-                    store_decay_radiation(nuclear_string)
-                else:
+                            nuclear_string
+                        )
+                    ).lower()
+                    == 'n'
+                ):
                     raise ValueError('{0} not in database'.format(
                         nuclear_string))
-        data_set = {}
-        for key in current_keys:
-            data_set[key.split('/')[-1]] = ds[key]
+                ds.close()
+                store_decay_radiation(nuclear_string)
+        data_set = {key.split('/')[-1]: ds[key] for key in current_keys}
     return data_set
 
 
@@ -243,8 +226,7 @@ class BaseParser(metaclass=ABCMeta):
                 float(x.split()[0]), u.keV).to(u.erg).value)
 
         if 'intensity' in df.columns:
-            df.intensity = df.intensity.apply(lambda x:
-                                              float(x.split('%')[0])/100.)
+            df.intensity = float(x.split('%')[0]) / 100.
 
         if 'dose' in df.columns:
             del df['dose']
@@ -290,10 +272,7 @@ class XGammaRayParser(BaseParser):
 
         x_ray_mask = df.type.str.startswith('XR')
 
-        results = {}
-        results['x_rays'] = df[x_ray_mask]
-        results['gamma_rays'] = df[~x_ray_mask]
-        return results
+        return {'x_rays': df[x_ray_mask], 'gamma_rays': df[~x_ray_mask]}
 
 
 

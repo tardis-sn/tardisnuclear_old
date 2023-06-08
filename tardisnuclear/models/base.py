@@ -104,21 +104,21 @@ class BaseEnergyInjection(FittableModel):
 
 
     def calculate_lepton_energy_per_s(self, time):
-        energy_per_s = ((self.lepton_energy_per_decay *
-            self.decay_constant).values * self.ejecta.get_decayed_numbers(time))
-        return energy_per_s
+        return (
+            self.lepton_energy_per_decay * self.decay_constant
+        ).values * self.ejecta.get_decayed_numbers(time)
 
     def calculate_em_energy_per_s(self, time):
-        energy_per_s = ((self.em_energy_per_decay *
-            self.decay_constant).values * self.ejecta.get_decayed_numbers(time))
-        return energy_per_s
+        return (
+            self.em_energy_per_decay * self.decay_constant
+        ).values * self.ejecta.get_decayed_numbers(time)
 
 
     def calculate_injected_energy_per_s(self, time):
-        energy_per_s = ((
-            (self.em_energy_per_decay + self.lepton_energy_per_decay) *
-            self.decay_constant).values * self.ejecta.get_decayed_numbers(time))
-        return energy_per_s
+        return (
+            (self.em_energy_per_decay + self.lepton_energy_per_decay)
+            * self.decay_constant
+        ).values * self.ejecta.get_decayed_numbers(time)
 
     def evaluate(self, time, *args):
         self._update_ejecta(args)
@@ -130,8 +130,7 @@ def make_energy_injection_model(cutoff_em_energy=20*u.keV, **kwargs):
     :param kwargs:
     :return:
     """
-    class_dict = {}
-    class_dict['__init__'] = BaseEnergyInjection.__init__
+    class_dict = {'__init__': BaseEnergyInjection.__init__}
     #class_dict['evaluate'] = BaseBolometricLightCurve.evaluate_specific
 
     init_kwargs = {}

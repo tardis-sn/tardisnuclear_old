@@ -244,21 +244,19 @@ def use_astropy_helpers(path=None, download_if_needed=None, index_url=None,
         try:
             dist = _do_download(find_links=[path])
         except Exception as e:
-            if download_if_needed:
-                log.warn('{0}\nWill attempt to download astropy_helpers from '
-                         'PyPI instead.'.format(str(e)))
-                dist = None
-            else:
+            if not download_if_needed:
                 raise _AHBootstrapSystemExit(e.args[0])
+            log.warn('{0}\nWill attempt to download astropy_helpers from '
+                     'PyPI instead.'.format(str(e)))
+            dist = None
     else:
         msg = ('{0!r} is not a valid file or directory (it could be a '
                'symlink?)'.format(path))
-        if download_if_needed:
-            log.warn(msg)
-            dist = None
-        else:
+        if not download_if_needed:
             raise _AHBootstrapSystemExit(msg)
 
+        log.warn(msg)
+        dist = None
     if dist is not None and auto_upgrade and not is_submodule:
         # A version of astropy-helpers was found on the available path, but
         # check to see if a bugfix release is available on PyPI
@@ -269,16 +267,15 @@ def use_astropy_helpers(path=None, download_if_needed=None, index_url=None,
         # Last resort--go ahead and try to download the latest version from
         # PyPI
         try:
-            if download_if_needed:
-                log.warn(
-                    "Downloading astropy_helpers; run setup.py with the "
-                    "--offline option to force offline installation.")
-                dist = _do_download(index_url=index_url)
-            else:
+            if not download_if_needed:
                 raise _AHBootstrapSystemExit(
                     "No source for the astropy_helpers package; "
                     "astropy_helpers must be available as a prerequisite to "
                     "installing this package.")
+            log.warn(
+                "Downloading astropy_helpers; run setup.py with the "
+                "--offline option to force offline installation.")
+            dist = _do_download(index_url=index_url)
         except Exception as e:
             if DEBUG:
                 raise
@@ -302,10 +299,6 @@ def _do_download(version='', find_links=None, index_url=None):
             index_url = None
         else:
             allow_hosts = None
-        # Annoyingly, setuptools will not handle other arguments to
-        # Distribution (such as options) before handling setup_requires, so it
-        # is not straightfoward to programmatically augment the arguments which
-        # are passed to easy_install
         class _Distribution(Distribution):
             def get_option_dict(self, command_name):
                 opts = Distribution.get_option_dict(self, command_name)
@@ -318,11 +311,7 @@ def _do_download(version='', find_links=None, index_url=None):
                         opts['allow_hosts'] = ('setup script', allow_hosts)
                 return opts
 
-        if version:
-            req = '{0}=={1}'.format(DIST_NAME, version)
-        else:
-            req = DIST_NAME
-
+        req = '{0}=={1}'.format(DIST_NAME, version) if version else DIST_NAME
         attrs = {'setup_requires': [req]}
         if DEBUG:
             dist = _Distribution(attrs=attrs)
@@ -479,10 +468,7 @@ def _check_submodule_using_git(path, offline):
             return False
 
     stdout = stdout.decode(stdio_encoding)
-    # The stdout should only contain one line--the status of the
-    # requested submodule
-    m = _git_submodule_status_re.match(stdout)
-    if m:
+    if m := _git_submodule_status_re.match(stdout):
         # Yes, the path *is* a git submodule
         _update_submodule(m.group('submodule'), m.group('status'), offline)
         return True

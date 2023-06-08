@@ -109,10 +109,13 @@ class BolometricLightCurveModelIa(object):
     def multinest_fit(self, priors, **kwargs):
 
 
-        mn_fit = pymultinest.run(self.log_likelihood, priors.prior_transform, 6,
-                                 outputfiles_basename='sn11fe/fit', **kwargs)
-
-        return mn_fit
+        return pymultinest.run(
+            self.log_likelihood,
+            priors.prior_transform,
+            6,
+            outputfiles_basename='sn11fe/fit',
+            **kwargs
+        )
 
 
 
